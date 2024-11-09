@@ -37,7 +37,7 @@ COPY . .
 RUN composer install --optimize-autoloader --no-dev
 
 # Changer les permissions pour les fichiers Laravel (storage et cache)
-RUN chown -R www-data:www-data /var/www \
+RUN chown -R www-data:www-data /var/www/storage \
     && chmod -R 755 /var/www/storage \
     && chmod -R 755 /var/www/bootstrap/cache
 
