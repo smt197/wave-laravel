@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: laravel-wave
+    container_name: laravel-wave
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+      - ./storage:/var/www/storage
+      - ./storage/app/credential.json:/home/smt/Bureau/pedagogie-laravel/storage/app/credential.json
+    ports:
+      - "8000:8000"  # Le serveur Artisan écoutera sur ce port
+    networks:
+      - app-network
+    environment:
+      - DB_HOST=dpg-csn5o51u0jms7381bu3g-a.oregon-postgres.render.com
+      - DB_PORT=5432
+      - DB_DATABASE=wavelaravel
+      - DB_USERNAME=smt
+      - DB_PASSWORD=OKoWeIN0rpthsSZj2qTVg68y2bg8jcJK
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wavelaravel
+      POSTGRES_USER: smt
+      POSTGRES_PASSWORD: OKoWeIN0rpthsSZj2qTVg68y2bg8jcJK
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  pgdata:
