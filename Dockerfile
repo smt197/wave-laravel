@@ -12,13 +12,14 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     libonig-dev \
-    pkg-config \ 
-    libssl-dev \ 
+    pkg-config \
+    libssl-dev \
     libpq-dev  # Ajout de la bibliothèque PostgreSQL
 
 # Installer les extensions PHP requises pour Laravel
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd \
+    && docker-php-ext-install pdo pdo_mysql zip \
     && docker-php-ext-install pdo_pgsql  # Installation du driver pdo_pgsql
 
 
