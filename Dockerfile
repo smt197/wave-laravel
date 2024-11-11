@@ -1,48 +1,39 @@
-# Utiliser une image PHP officielle avec FPM
 FROM php:8.1-fpm
 
-# Installer les dépendances nécessaires
+# Installation des dépendances système et extensions PHP
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    unzip \
     git \
     curl \
-    libonig-dev \
-    pkg-config \
-    libssl-dev \
-    libpq-dev  # Ajout de la bibliothèque PostgreSQL
+    libzip-dev \
+    zip \
+    unzip \
+    libpq-dev \
+    && docker-php-ext-install zip pdo pdo_pgsql pgsql \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Installer les extensions PHP requises pour Laravel
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd \
-    && docker-php-ext-install pdo pdo_mysql zip \
-    && docker-php-ext-install pdo_pgsql  # Installation du driver pdo_pgsql
-
-# Installer l'extension MongoDB
-RUN pecl install mongodb \
-    && docker-php-ext-enable mongodb
-
-# Installer Composer
+# Installation de Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copier le projet Laravel dans le conteneur
-WORKDIR /var/www
-COPY . .
+# Définition du répertoire de travail
+WORKDIR /var/www/html
 
-# Installer les dépendances PHP
-RUN composer install --optimize-autoloader --no-dev
+# Copie des fichiers du projet
+COPY . /var/www/html
+COPY .env.example .env
 
-# Changer les permissions pour les fichiers Laravel (storage et cache)
-RUN chown -R www-data:www-data /var/www/storage \
-    && chmod -R 755 /var/www/storage \
-    && chmod -R 755 /var/www/bootstrap/cache
+# Installation des dépendances
+RUN composer install --no-interaction --no-dev --optimize-autoloader
 
-# Exposer le port 8000 pour le serveur Artisan
+# Configuration des permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage bootstrap/cache
+
+# Génération de la clé d'application
+RUN php artisan key:generate
+
+# Exposition du port
 EXPOSE 8000
 
-# Lancer le serveur Laravel Artisan
+# Démarrage avec artisan serve
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]

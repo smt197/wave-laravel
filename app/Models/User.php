@@ -55,6 +55,15 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    function transaction() {
+        return $this->hasMany(Transaction::class);
+    }
+    
+    function client() {
+        return $this->hasOne(Client::class);
+    }
+
+
     public function hasRole($roleName)
     {
         return $this->role && $this->role->nomRole === $roleName;

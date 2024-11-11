@@ -23,7 +23,7 @@ class UserResource extends JsonResource
             'statut' => $this->statut,
             'role' => $this->when($this->role_id, function () {
                 return new RoleResource($this->role);
-            })
+            }),
         ];
     }
 }

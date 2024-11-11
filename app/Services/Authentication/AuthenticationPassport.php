@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\RegistreRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Client;
 
 class AuthenticationPassport implements AuthenticationServiceInterface
 {
@@ -16,11 +17,11 @@ class AuthenticationPassport implements AuthenticationServiceInterface
             return ['success' => false, 'message' => 'Utilisateur non authentifié.', 'status' => 401];
         }
 
-        $currentUser = auth()->user();
+        // $currentUser = auth()->user();
 
-        if (!$currentUser || $currentUser->role->nomRole !== 'CLIENT' || $currentUser->role->nomRole !== 'ADMIN') {
-            return ['success' => false, 'message' => 'Seuls les utilisateurs de rôle "boutiquier et Admin" peuvent s\'enregistrer.', 'status' => 403];
-        }
+        // if (!$currentUser || $currentUser->role->nomRole !== 'CLIENT' || $currentUser->role->nomRole !== 'ADMIN') {
+        //     return ['success' => false, 'message' => 'Seuls les utilisateurs de rôle "boutiquier et Admin" peuvent s\'enregistrer.', 'status' => 403];
+        // }
 
         $user = User::create([
             'name' => $request->name,
@@ -32,9 +33,21 @@ class AuthenticationPassport implements AuthenticationServiceInterface
             'statut' => $request->statut,
         ]);
 
+         // Créer un client lié à l'utilisateur
+    $client = Client::create([
+        'user_id' => $user->id,
+        'surname' => $request->surname, // Ajoutez d'autres champs nécessaires
+        'telephone' => $request->telephone,
+        'adresse' => $request->adresse,
+        'qr_code' => $request->qr_code,
+        'solde' => $request->solde,
+        'soldeMax' => $request->soldeMax,
+        'cumulTransaction' => $request->cumulTransaction,
+    ]);
+
         $token = $user->createToken('authToken')->accessToken;
 
-        return ['success' => true, 'user' => $user, 'token' => $token];
+        return ['success' => true, 'user' => $user, 'client' => $client, 'token' => $token];
     }
 
     public function login($credentials)

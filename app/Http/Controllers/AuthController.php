@@ -24,6 +24,12 @@ class AuthController extends Controller
         $this->authService = $authService;
     }
 
+    public function get(){
+        return response()->json([
+            'data' => env('FIREBASE_CREDENTIALS'),
+        ]);
+    }
+
     public function register(StoreUserRequest $request)
     {
         try {
@@ -33,6 +39,7 @@ class AuthController extends Controller
                 return $this->sendResponse([
                     'user' => new UserResource($response['user']),
                     'token' => $response['token'],
+                    'client' => $response['client'],
                 ], StatusResponseEnum::SUCCESS);
             } else {
                 return $this->sendResponse(['error' => $response['message']], StatusResponseEnum::ECHEC, $response['status'] ?? 400);
