@@ -8,7 +8,21 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libpq-dev \
-    && docker-php-ext-install zip pdo pdo_pgsql pgsql \
+    default-mysql-client \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    && docker-php-ext-install \
+        zip \
+        pdo \
+        pdo_pgsql \
+        pgsql \
+        pdo_mysql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,6 +45,9 @@ RUN chown -R www-data:www-data /var/www/html \
 
 # Génération de la clé d'application
 RUN php artisan key:generate
+
+# Installation et configuration de Passport
+RUN php artisan passport:install --force
 
 # Exposition du port
 EXPOSE 8000
