@@ -1,56 +1,52 @@
+# Utiliser une image PHP officielle avec FPM
 FROM php:8.1-fpm
 
-# Installation des dépendances système et extensions PHP
+# Installer les dépendances nécessaires
 RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    unzip \
     git \
     curl \
-    libzip-dev \
-    zip \
-    unzip \
-    libpq-dev \
-    default-mysql-client \
-    libpng-dev \
     libonig-dev \
-    libxml2-dev \
-    && docker-php-ext-install \
-        zip \
-        pdo \
-        pdo_pgsql \
-        pgsql \
-        pdo_mysql \
-        mbstring \
-        exif \
-        pcntl \
-        bcmath \
-        gd \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    pkg-config \
+    libssl-dev \
+    libpq-dev  # Ajout de la bibliothèque PostgreSQL
 
-# Installation de Composer
+# Installer les extensions PHP requises pour Laravel
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd \
+    && docker-php-ext-install pdo_pgsql  # Installation du driver pdo_pgsql
+
+# Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Définition du répertoire de travail
-WORKDIR /var/www/html
+# Copier le projet Laravel dans le conteneur
+WORKDIR /var/www
+COPY . .
 
-# Copie des fichiers du projet
-COPY . /var/www/html
-COPY .env.example .env
+# Installer les dépendances PHP
+RUN composer install --optimize-autoloader --no-dev
 
-# Installation des dépendances
-RUN composer install --no-interaction --no-dev --optimize-autoloader
+# Générer les clés pour Laravel Passport
+RUN php artisan passport:keys
 
-# Configuration des permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage bootstrap/cache
+# Changer les permissions pour les fichiers Laravel (storage et cache)
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 755 /var/www/storage \
+    && chmod -R 755 /var/www/bootstrap/cache
 
-# Génération de la clé d'application
-RUN php artisan key:generate
+# Installer Nginx
+RUN apt-get install -y nginx
 
-# Installation et configuration de Passport
-RUN php artisan passport:install --force
+# Copier la configuration Nginx
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Exposition du port
-EXPOSE 8000
+# Exposer le port 80 pour Nginx
+EXPOSE 80
 
-# Démarrage avec artisan serve
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Lancer Nginx et PHP-FPM
+CMD ["sh", "-c", "service nginx start && php-fpm"]
