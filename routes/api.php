@@ -28,8 +28,7 @@ Route::middleware(['auth:api'])->prefix('v1')->group(function () {
     Route::get('/transactions', [TransactionController::class, 'getTransactionByUser']);
     Route::get('/client/balance', [TransactionController::class, 'getBalance']);
 
-
-
+    Route::post('/transactions/planifie', [TransactionController::class, 'scheduleTransfer']);
 
 });
 

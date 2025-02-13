@@ -10,7 +10,7 @@ class Transaction extends Model
     use HasFactory;
 
     protected $fillable = [
-         'client_id', 'type', 'amount', 'status', 'method'
+         'client_id', 'type', 'amount', 'status', 'method','frequency', 'next_scheduled_at', 'is_scheduled'
     ];
 
     public function user()

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\User;
@@ -42,7 +43,6 @@ class TransactionController extends Controller
                 'message' => 'Transfert effectué avec succès',
                 'transaction' => $transaction
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json(['message' => 'Erreur lors du transfert'], 500);
         }
@@ -61,7 +61,7 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Utilisateur non connecté'], 401);
         }
         $client = Client::where('user_id', $user->id)->first();
-        
+
 
         if (!$client) {
             return response()->json(['message' => 'Client non trouvé pour cet utilisateur'], 404);
@@ -82,7 +82,6 @@ class TransactionController extends Controller
                 'message' => 'Dépôt effectué avec succès',
                 'transaction' => $transaction
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json(['message' => 'Erreur lors du dépôt', 'error' => $e->getMessage()], 500);
         }
@@ -92,23 +91,23 @@ class TransactionController extends Controller
     public function getTransactionByUser()
     {
         $user = Auth::user();
-    
+
         if (!$user) {
             return response()->json(['message' => 'Utilisateur non connecté'], 401);
         }
-    
+
         // Récupérer le client associé à l'utilisateur
         $client = Client::where('user_id', $user->id)->first();
-    
+
         if (!$client) {
             return response()->json(['message' => 'Client non trouvé pour cet utilisateur'], 404);
         }
-    
+
         // Récupérer les transactions du client avec les informations du client
         $transactions = Transaction::where('client_id', $client->id)
             ->orderBy('created_at', 'desc') // Trier par date de création
             ->get();
-    
+
         // Ajouter les informations du client dans chaque transaction
         $transactionsWithClientInfo = $transactions->map(function ($transaction) use ($client) {
             // Vous pouvez ajouter les informations supplémentaires que vous souhaitez, par exemple:
@@ -119,7 +118,7 @@ class TransactionController extends Controller
 
             return $transaction;
         });
-    
+
         return response()->json([
             'message' => 'Transactions récupérées avec succès',
             'transactions' => $transactionsWithClientInfo
@@ -127,7 +126,8 @@ class TransactionController extends Controller
     }
 
     // fonction getBalance() pour afficher le solde du client connectee
-    public function getBalance(){
+    public function getBalance()
+    {
         $user = Auth::user();
         if (!$user) {
             return response()->json(['message' => 'Utilisateur non connecté'], 401);
@@ -137,12 +137,49 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Client non trouvé pour cet utilisateur'], 404);
         }
         return response()->json([
-           'message' => 'Solde du client',
-           'solde' => $client->solde,
-           'qr_code' => $client->qr_code 
+            'message' => 'Solde du client',
+            'solde' => $client->solde,
+            'qr_code' => $client->qr_code
         ], 200);
     }
-    
 
+    public function scheduleTransfer(Request $request)
+    {
+        $validated = $request->validate([
+            'receiverPhone' => 'required|string|exists:clients,telephone',
+            'amount' => 'required|numeric|min:500',
+            'frequency' => 'required|string|in:day,week,month,minute', 
+        ]);
 
+        $user = Auth::user();
+        $senderClient = Client::where('user_id', $user->id)->firstOrFail();
+
+        if ($senderClient->solde < $validated['amount']) {
+            return response()->json(['message' => 'Solde insuffisant pour le transfert'], 400);
+        }
+
+        $receiverClient = Client::where('telephone', $validated['receiverPhone'])->firstOrFail();
+
+        $nextScheduledAt = match ($validated['frequency']) {
+            'day' => now()->addDay(),
+            'week' => now()->addWeek(),
+            'month' => now()->addMonth(),
+            'minute' => now()->addMinute(),
+        };
+
+        $transaction = Transaction::create([
+            'type' => 'transfert',
+            'amount' => $validated['amount'],
+            'client_id' => $receiverClient->id,
+            'status' => 'en attente',
+            'is_scheduled' => true,
+            'frequency' => $validated['frequency'],
+            'next_scheduled_at' => $nextScheduledAt,
+        ]);
+
+        return response()->json([
+            'message' => 'Transfert planifié avec succès',
+            'transaction' => $transaction,
+        ], 201);
+    }
 }
